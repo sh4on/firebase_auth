@@ -1,13 +1,32 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 
 class AuthController extends GetxController {
-  void login(String email, String password) {
-    // Simulating a login request
-    if (email == "test@example.com" && password == "password123") {
-      Get.snackbar("Success", "Login Successful!", snackPosition: SnackPosition.BOTTOM);
-      Get.offNamed('/home'); // Navigate to Home Screen
-    } else {
-      Get.snackbar("Error", "Invalid credentials", snackPosition: SnackPosition.BOTTOM);
+  Rx<RxStatus> status = Rx<RxStatus>(RxStatus.success());
+
+
+  Future<void> createUserWithEmailAndPassword(String emailAddress, String password) async {
+    status.value = RxStatus.loading();
+
+    try {
+      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailAddress,
+        password: password,
+      );
+      status.value = RxStatus.success();
+      
+      // show toast
+      Get.snackbar('', 'Your account has been successfully created. You can now log in.');
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'weak-password') {
+        status.value = RxStatus.error('The password provided is too weak.');
+      } else if (e.code == 'email-already-in-use') {
+        status.value = RxStatus.error('The account already exists for that email.');
+      } else {
+        status.value = RxStatus.error(e.toString());
+      }
+    } catch (e) {
+      status.value = RxStatus.error(e.toString());
     }
   }
 }
