@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:get/get.dart';
 
 class AuthController extends GetxController {
@@ -52,6 +53,39 @@ class AuthController extends GetxController {
       } else {
         status.value = RxStatus.error(e.toString());
       }
+    } catch (e) {
+      status.value = RxStatus.error(e.toString());
+    }
+
+    return false;
+  }
+
+  Future<bool> signInWithFacebook() async {
+    status.value = RxStatus.loading();
+
+    try {
+      // Trigger the sign-in flow
+      final LoginResult loginResult = await FacebookAuth.instance.login();
+
+      // Check if login was successful
+      if (loginResult.status == LoginStatus.success) {
+        // Get credential from access token
+        final OAuthCredential facebookAuthCredential =
+        FacebookAuthProvider.credential(loginResult.accessToken!.tokenString);
+
+        // Sign in with credential
+        final userCredential = await FirebaseAuth.instance
+            .signInWithCredential(facebookAuthCredential);
+
+        status.value = RxStatus.success();
+        return true;
+      } else if (loginResult.status == LoginStatus.cancelled) {
+        status.value = RxStatus.error('Facebook login was cancelled');
+      } else {
+        status.value = RxStatus.error('Facebook login failed');
+      }
+    } on FirebaseAuthException catch (e) {
+      status.value = RxStatus.error('Firebase auth error: ${e.message}');
     } catch (e) {
       status.value = RxStatus.error(e.toString());
     }
